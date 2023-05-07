@@ -68,12 +68,13 @@ void generate_random_data(const char* filename, int count) {
   // Verifica se o arquivo foi aberto corretamente
   if (!file) {
     // Imprime uma mensagem de erro
-    perror("Error opening file");
+    perror("Erro ao abrir o arquivo!");
     // Retorna
     return;
   }
   // Gera uma semente para o gerador de números aleatórios
   srand(time(NULL));
+  printf("Generando dados aleatórios...\n");
   // Gera os números aleatórios e escreve no arquivo
   for (int i = 0; i < count; i++) {
     // Gera um número aleatório entre 0 e 99999
@@ -94,7 +95,7 @@ int main() {
   // Verifica se o arquivo foi aberto corretamente
   if (!file) {
     // Imprime uma mensagem de erro
-    perror("Error opening file");
+    perror("Erro ao abrir o arquivo!");
     // Retorna 1 para indicar erro
     return 1;
   }
@@ -116,7 +117,7 @@ int main() {
   // Verifica se o arquivo foi aberto corretamente
   if (!file) {
     // Imprime uma mensagem de erro
-    perror("Error opening file");
+    perror("Erro ao abrir o arquivo!");
     // Retorna 1 para indicar erro
     return 1;
   }
