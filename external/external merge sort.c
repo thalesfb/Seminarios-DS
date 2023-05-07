@@ -2,11 +2,37 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+
 // Tamanho do buffer de memória
 #define MEMORY_SIZE 1000 // Ajuste este valor de acordo com o tamanho da memória disponível
 // Tamanho máximo do nome a ser ordenado
 #define TAMANHO_MAX_NOME 50
 
+// protótipos das funções
+int compare_strings(const void*, const void*);
+int divide_file(const char*);
+void merge_files(int, const char*);
+void external_merge_sort(const char*, const char*);
+void remove_temp_files(int);
+
+// Função principal
+int main() {
+  // Nome do arquivo de entrada
+  const char* input_file_name = "nomes.txt";
+  // Nome do arquivo de saída
+  const char* output_file_name = "sorted_nomes.txt";
+
+  // Chama a função para ordenar o arquivo de entrada
+  external_merge_sort(input_file_name, output_file_name);
+
+  // Mostra uma mensagem de sucesso
+  printf("Arquivo ordenado com sucesso!\n");
+
+  // Retorna 0 para indicar sucesso
+  return 0;
+}
+
+// Implementação das funções
 // Função para comparar dois nomes
 int compare_strings(const void* a, const void* b) {
   // Converte os parâmetros para o tipo correto
@@ -179,20 +205,27 @@ void external_merge_sort(const char* input_file_name, const char* output_file_na
   if (part_memory < 0) {
     // Imprime uma mensagem de erro
     fprintf(stderr, "Erro dividindo o arquivo de entrada\n");
+    // Retorna
+    return;
   }
   // Faz a mesclagem dos subarquivos
   merge_files(part_memory, output_file_name);
+  // Remove os arquivos temporários gerados
+  remove_temp_files(part_memory);
 }
 
-// Função principal
-int main() {
-  // Nome do arquivo de entrada
-  const char* input_file_name = "nomes.txt";
-  // Nome do arquivo de saída
-  const char* output_file_name = "sorted_nomes.txt";
-
-  // Chama a função para ordenar o arquivo de entrada
-  external_merge_sort(input_file_name, output_file_name);
-
-  return 0;
+// Função para remover os arquivos temporários gerados
+void remove_temp_files(int part_memory) {
+  // Laço para remover os arquivos temporários
+  for (int i = 0; i < part_memory; i++) {
+    // Cria o nome do arquivo de entrada
+    char temp_file_name[100];
+    // Imprime o nome do arquivo de entrada
+    sprintf(temp_file_name, "part_%d.txt", i);
+    // Remove o arquivo de entrada
+    if (remove(temp_file_name) != 0) {
+      // Imprime uma mensagem de erro
+      perror("Erro removendo o arquivo temporário");
+    }
+  }
 }
