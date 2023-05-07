@@ -2,239 +2,197 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-
+// Tamanho do buffer de memória
 #define MEMORY_SIZE 1000 // Ajuste este valor de acordo com o tamanho da memória disponível
-#define TAMANHO_MAX_NOME 50 // Tamanho maximo do nome a ser ordenado
+// Tamanho máximo do nome a ser ordenado
+#define TAMANHO_MAX_NOME 50
 
 // Função para comparar dois nomes
-int compare(const void* a, const void* b) {
-  return strcmp((const char*)a, (const char*)b);
+int compare_strings(const void* a, const void* b) {
+  // Converte os parâmetros para o tipo correto
+  const char* str_a = *(const char**)a;
+  const char* str_b = *(const char**)b;
+  // Retorna o resultado da comparação
+  return strcmp(str_a, str_b);
 }
 
 // Função para ler e dividir o arquivo de entrada em subarquivos
 int divide_file(const char* input_file_name) {
+  // Abre o arquivo de entrada
   FILE* input_file = fopen(input_file_name, "r");
+  // Verifica se o arquivo foi aberto corretamente
   if (input_file == NULL) {
-    perror("Error opening input file");
+    // Imprime uma mensagem de erro
+    perror("Erro ao abrir o arquivo de entrada");
+    // Retorna -1 para indicar erro
     return -1;
   }
-
+  // Variável para contar a quantidade de nomes lidos
   int part_memory = 0;
-
+  // Lê os nomes do arquivo de entrada 
   while (!feof(input_file)) {
+    // Aloca memória para o buffer de memória
     char** arr = (char**)malloc(MEMORY_SIZE * sizeof(char*));
+    // Laço para alocar memória para cada nome lido
     for (int i = 0; i < MEMORY_SIZE; i++) {
       arr[i] = (char*)malloc(TAMANHO_MAX_NOME * sizeof(char));
     }
-
     int i = 0;
+    // Loop para ler os nomes do arquivo de entrada
     while (i < MEMORY_SIZE && fgets(arr[i], TAMANHO_MAX_NOME, input_file) != NULL) {
       i++;
     }
-
+    // Verifica se o laço foi interrompido por um erro
     if (i > 0) {
-      qsort(arr, i, TAMANHO_MAX_NOME * sizeof(char), compare);
-
+      // Ordena o subarquivo
+      qsort(arr, i, sizeof(char*), compare_strings);
+      // Cria o nome do arquivo de saída
       char output_file_name[100];
+      // Imprime o nome do arquivo de saída
       sprintf(output_file_name, "part_%d.txt", part_memory);
+      // Abre o arquivo de saída
       FILE* output_file = fopen(output_file_name, "w");
+      // Verifica se o arquivo foi aberto corretamente
       if (output_file == NULL) {
-        perror("Error opening output file");
+        // Imprime uma mensagem de erro
+        perror("Erro ao abrir o arquivo de saída");
+        // Retorna -1 para indicar erro
         return -1;
       }
-
+      // Escreve os nomes ordenados no arquivo de saída
       for (int j = 0; j < i; j++) {
+        // Imprime o nome no arquivo de saída
         fputs(arr[j], output_file);
       }
-
+      // Fecha o arquivo de saída
       fclose(output_file);
+      // Incrementa o contador de subarquivos
       part_memory++;
     }
-
+    // Libera a memória alocada para os nomes
     for (int i = 0; i < MEMORY_SIZE; i++) {
       free(arr[i]);
     }
+    // Libera a memória alocada para o buffer de memória
     free(arr);
   }
-
+  // Fecha o arquivo de entrada
   fclose(input_file);
+  // Retorna a quantidade de subarquivos gerados
   return part_memory;
 }
 
-/* int divide_file(const char* input_file) {
-
-  char** arr = (char**)malloc(MEMORY_SIZE * sizeof(char*));
-
-  int arr[MEMORY_SIZE];
-  int part_memory = 0;
-
-  FILE* file = fopen(input_file, "r");
-  if (!file) {
-    perror("Error opening input file");
-    return 0;
-  }
-
-  while (!feof(file)) {
-    int i;
-    for (i = 0; i < MEMORY_SIZE && fscanf(file, "%d", &arr[i]) == 1; i++);
-
-    qsort(arr, i, sizeof(int), compare); // Ordena o subarquivo
-
-    char output_file[64];
-    snprintf(output_file, sizeof(output_file), "pert_%d.txt", part_memory);
-    FILE* out = fopen(output_file, "w");
-    if (!out) {
-      perror("Error opening output file");
-      fclose(file);
-      return 0;
-    }
-
-    for (int j = 0; j < i; j++) {
-      fprintf(out, "%d\n", arr[j]);
-    }
-
-    fclose(out);
-    part_memory++;
-  }
-
-  fclose(file);
-  return part_memory;
-} */
-
 // Função para fazer a intercalação (merge) dos subarquivos ordenados
 void merge_files(int part_memory, const char* output_file_name) {
+  // Aloca memória para o arquivo de entrada
   FILE** input_files = (FILE**)malloc(part_memory * sizeof(FILE*));
+  // Laço para abrir os arquivos de entrada
   for (int i = 0; i < part_memory; i++) {
+    // Cria o nome do arquivo de entrada
     char input_file_name[100];
+    // Imprime o nome do arquivo de entrada
     sprintf(input_file_name, "part_%d.txt", i);
+    // Abre o arquivo de entrada para leitura
     input_files[i] = fopen(input_file_name, "r");
+    // Verifica se o arquivo foi aberto corretamente
     if (input_files[i] == NULL) {
-      perror("Error opening input file");
+      // Imprime uma mensagem de erro
+      perror("Erro ao abrir o arquivo de entrada");
+      // Retorna
       return;
     }
   }
-
+  // Abre o arquivo de saída
   FILE* output_file = fopen(output_file_name, "w");
+  // Verifica se o arquivo foi aberto corretamente
   if (output_file == NULL) {
-    perror("Error opening output file");
+    // Imprime uma mensagem de erro
+    perror("Erro ao abrir o arquivo de saída");
     return;
   }
-
+  // Aloca memória para o buffer de memória
   char** buffer = (char**)malloc(part_memory * sizeof(char*));
+  // Aloca memória para o vetor de flags de fim de arquivo
   bool* eof_flags = (bool*)malloc(part_memory * sizeof(bool));
+  // Laço para alocar memória para cada nome lido
   for (int i = 0; i < part_memory; i++) {
+    // Aloca memória para cada nome lido e atribui o valor para o buffer de memória
     buffer[i] = (char*)malloc(TAMANHO_MAX_NOME * sizeof(char));
+    // Inicializa a flag de fim de arquivo
     eof_flags[i] = false;
   }
-
+  // Laço para ler os nomes do arquivo de entrada
   for (int i = 0; i < part_memory; i++) {
+    // Lê o nome do arquivo de entrada
     if (fgets(buffer[i], TAMANHO_MAX_NOME, input_files[i]) == NULL) {
+      // Atribui o valor true para a flag de fim de arquivo
       eof_flags[i] = true;
     }
   }
-
+  // Laço para fazer a intercalação dos subarquivos
   while (true) {
+    // Variável para armazenar o índice do menor nome
     int min_index = -1;
+    // Laço para encontrar o menor nome
     for (int i = 0; i < part_memory; i++) {
+      // Verifica se o nome não chegou ao fim e se é menor que o nome atual
       if (!eof_flags[i] && (min_index == -1 || strcmp(buffer[i], buffer[min_index]) < 0)) {
+        // Atribui o índice do menor nome
         min_index = i;
       }
     }
-
+    // Verifica se o laço foi interrompido por um erro
     if (min_index == -1) {
+      // Para o laço principal
       break;
     }
-
+    // Imprime o nome no arquivo de saída
     fputs(buffer[min_index], output_file);
-
+    // Lê o próximo nome do arquivo de entrada
     if (fgets(buffer[min_index], TAMANHO_MAX_NOME, input_files[min_index]) == NULL) {
+      // Atribui o valor true para a flag de fim de arquivo
       eof_flags[min_index] = true;
     }
   }
-
+  // Laço para liberar a memória alocada
   for (int i = 0; i < part_memory; i++) {
+    // Libera a memória alocada para cada nome
     free(buffer[i]);
+    // Fecha o arquivo de entrada
     fclose(input_files[i]);
   }
+  // Libera a memória alocada para o buffer de memória
   free(buffer);
+  // Libera a memória alocada para o vetor de flags de fim de arquivo
   free(eof_flags);
+  // Libera a memória alocada para o arquivo de entrada
   free(input_files);
-
+  // Fecha o arquivo de saída
   fclose(output_file);
 }
 
 // Função para ordenar o arquivo de entrada
 void external_merge_sort(const char* input_file_name, const char* output_file_name) {
+  // Divide o arquivo de entrada em subarquivos atrbuindo o valor para a variável part_memory
   int part_memory = divide_file(input_file_name);
+  // Verifica se ocorreu algum erro
   if (part_memory < 0) {
+    // Imprime uma mensagem de erro
     fprintf(stderr, "Erro dividindo o arquivo de entrada\n");
   }
+  // Faz a mesclagem dos subarquivos
   merge_files(part_memory, output_file_name);
 }
 
-/* void external_merge_sort(const char* output_file, int part_memory) {
-  FILE* files[part_memory];
-  int buffers[part_memory];
-  bool active[part_memory];
-
-  for (int i = 0; i < part_memory; i++) {
-    char input_file[64];
-    snprintf(input_file, sizeof(input_file), "chunk_%d.txt", i);
-    files[i] = fopen(input_file, "r");
-    if (!files[i]) {
-      perror("Error opening input file");
-      return;
-    }
-
-    if (fscanf(files[i], "%d", &buffers[i]) != 1) {
-      perror("Error reading input file");
-      fclose(files[i]);
-      return;
-    }
-    active[i] = true;
-  }
-
-  FILE* out = fopen(output_file, "w");
-  if (!out) {
-    perror("Error opening output file");
-    return;
-  }
-
-  int num_active = part_memory;
-  while (num_active > 0) {
-    int min_index = -1;
-    for (int i = 0; i < part_memory; i++) {
-      if (!active[i]) {
-        continue;
-      }
-
-      if (min_index == -1 || buffers[i] < buffers[min_index]) {
-        min_index = i;
-      }
-    }
-
-    fprintf(out, "%d\n", buffers[min_index]);
-    if (fscanf(files[min_index], "%d", &buffers[min_index]) != 1) {
-      active[min_index] = false;
-      fclose(files[min_index]);
-      num_active--;
-    }
-  }
-  fclose(out);
-} */
+// Função principal
 int main() {
+  // Nome do arquivo de entrada
   const char* input_file_name = "nomes.txt";
+  // Nome do arquivo de saída
   const char* output_file_name = "sorted_nomes.txt";
 
+  // Chama a função para ordenar o arquivo de entrada
   external_merge_sort(input_file_name, output_file_name);
 
-  /*   int part_memory = divide_file(input_file);
-    if (part_memory > 0) {
-      external_merge_sort(output_file, part_memory);
-      printf("Arquivo ordenado com sucesso: %s\n", output_file);
-    }
-    else {
-      printf("Erro ao dividir o arquivo de entrada.\n");
-    } */
   return 0;
 }
