@@ -4,6 +4,58 @@
 
 #define N 1000000 // Ajuste este valor de acordo com o tamanho da memória disponível
 
+// Protótipos das funções
+void merge(int[], int[], int, int[], int);
+void merge_sort(int[], int);
+void generate_random_data(const char*, int);
+
+// Função principal
+int main() {
+  // Gera os dados aleatórios
+  generate_random_data("data.txt", N);
+  // Abre o arquivo para leitura
+  FILE* file = fopen("data.txt", "r");
+  // Verifica se o arquivo foi aberto corretamente
+  if (!file) {
+    // Imprime uma mensagem de erro
+    perror("Erro ao abrir o arquivo!");
+    // Retorna 1 para indicar erro
+    return 1;
+  }
+  // Cria um array para armazenar os dados
+  int data[N];
+  // Variável para contar a quantidade de dados lidos
+  int count = 0;
+  // Lê os dados do arquivo
+  while (fscanf(file, "%d", &data[count]) != EOF) {
+    // Incrementa o contador
+    count++;
+  }
+  // Fecha o arquivo
+  fclose(file);
+  // Chama a função merge_sort para ordenar os dados
+  merge_sort(data, count);
+  // Abre o arquivo para escrita
+  file = fopen("sorted_data.txt", "w");
+  // Verifica se o arquivo foi aberto corretamente
+  if (!file) {
+    // Imprime uma mensagem de erro
+    perror("Erro ao abrir o arquivo!");
+    // Retorna 1 para indicar erro
+    return 1;
+  }
+  // Escreve os dados ordenados no arquivo
+  for (int i = 0; i < count; i++) {
+    // Escreve o número no arquivo
+    fprintf(file, "%d\n", data[i]);
+  }
+  // Fecha o arquivo
+  fclose(file);
+  // Retorna 0 para indicar sucesso
+  return 0;
+}
+
+// Implementação das funções
 // Função que mescla dois arrays
 void merge(int arr[], int left[], int left_size, int right[], int right_size) {
   // Variáveis para controlar os índices dos arrays
@@ -84,50 +136,4 @@ void generate_random_data(const char* filename, int count) {
   }
   // Fecha o arquivo
   fclose(file);
-}
-
-// Função principal
-int main() {
-  // Gera os dados aleatórios
-  generate_random_data("data.txt", N);
-  // Abre o arquivo para leitura
-  FILE* file = fopen("data.txt", "r");
-  // Verifica se o arquivo foi aberto corretamente
-  if (!file) {
-    // Imprime uma mensagem de erro
-    perror("Erro ao abrir o arquivo!");
-    // Retorna 1 para indicar erro
-    return 1;
-  }
-  // Cria um array para armazenar os dados
-  int data[N]; // Ajuste o tamanho do array conforme necessário
-  // Variável para contar a quantidade de dados lidos
-  int count = 0;
-  // Lê os dados do arquivo
-  while (fscanf(file, "%d", &data[count]) != EOF) {
-    // Incrementa o contador
-    count++;
-  }
-  // Fecha o arquivo
-  fclose(file);
-  // Chama a função merge_sort para ordenar os dados
-  merge_sort(data, count);
-  // Abre o arquivo para escrita
-  file = fopen("sorted_data.txt", "w");
-  // Verifica se o arquivo foi aberto corretamente
-  if (!file) {
-    // Imprime uma mensagem de erro
-    perror("Erro ao abrir o arquivo!");
-    // Retorna 1 para indicar erro
-    return 1;
-  }
-  // Escreve os dados ordenados no arquivo
-  for (int i = 0; i < count; i++) {
-    // Escreve o número no arquivo
-    fprintf(file, "%d\n", data[i]);
-  }
-  // Fecha o arquivo
-  fclose(file);
-  // Retorna 0 para indicar sucesso
-  return 0;
 }
