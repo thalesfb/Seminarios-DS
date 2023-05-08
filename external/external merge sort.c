@@ -21,27 +21,22 @@ int main() {
   const char* input_file_name = "nomes.txt";
   // Nome do arquivo de saída
   const char* output_file_name = "sorted_nomes.txt";
-
   // Chama a função para ordenar o arquivo de entrada
   external_merge_sort(input_file_name, output_file_name);
-
   // Mostra uma mensagem de sucesso
   printf("Arquivo ordenado com sucesso!\n");
-
   // Retorna 0 para indicar sucesso
   return 0;
 }
-
 // Implementação das funções
-// Função para comparar dois nomes
+// Função para comparar dois nomes compatível com a função qsort
 int compare_strings(const void* a, const void* b) {
-  // Converte os parâmetros para o tipo correto
+  // Converte os parâmetros para o tipo compativel com a função
   const char* str_a = *(const char**)a;
   const char* str_b = *(const char**)b;
   // Retorna o resultado da comparação
   return strcmp(str_a, str_b);
 }
-
 // Função para ler e dividir o arquivo de entrada em subarquivos
 int divide_file(const char* input_file_name) {
   // Abre o arquivo de entrada
@@ -110,7 +105,7 @@ int divide_file(const char* input_file_name) {
 
 // Função para fazer a intercalação (merge) dos subarquivos ordenados
 void merge_files(int part_memory, const char* output_file_name) {
-  // Aloca memória para o arquivo de entrada
+  // Aloca memória para os arquivos de entrada
   FILE** input_files = (FILE**)malloc(part_memory * sizeof(FILE*));
   // Laço para abrir os arquivos de entrada
   for (int i = 0; i < part_memory; i++) {
@@ -144,7 +139,7 @@ void merge_files(int part_memory, const char* output_file_name) {
   for (int i = 0; i < part_memory; i++) {
     // Aloca memória para cada nome lido e atribui o valor para o buffer de memória
     buffer[i] = (char*)malloc(TAMANHO_MAX_NOME * sizeof(char));
-    // Inicializa a flag de fim de arquivo
+    // Inicializa buffer das flags de fim de arquivo
     eof_flags[i] = false;
   }
   // Laço para ler os nomes do arquivo de entrada
@@ -172,11 +167,11 @@ void merge_files(int part_memory, const char* output_file_name) {
       // Para o laço principal
       break;
     }
-    // Imprime o nome no arquivo de saída
+    // Imprime o nome menor do buffer no arquivo de saída
     fputs(buffer[min_index], output_file);
     // Lê o próximo nome do arquivo de entrada
     if (fgets(buffer[min_index], TAMANHO_MAX_NOME, input_files[min_index]) == NULL) {
-      // Atribui o valor true para a flag de fim de arquivo
+      // Atribui o valor true para a flag de fim de arquivo caso o tenha chegado ao fim
       eof_flags[min_index] = true;
     }
   }
