@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define N 1000000 // Ajuste este valor de acordo com o tamanho da memória disponível
+#define N 100000 // Ajuste este valor de acordo com o tamanho da memória disponível
 
 // Protótipos das funções
 void merge(int[], int[], int, int[], int);
