@@ -1,194 +1,137 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define VERMELHO 0
-#define PRETO 1
+typedef enum { RED, BLACK } Cor;
 
-typedef struct No {
+typedef struct sNo {
   int valor;
-  int cor;  // VERMELHO (0) ou PRETO (1)
-  struct No* pai, * esquerda, * direita;
-} Node;
+  Cor cor;
+  struct sNo* pai, * esquerda, * direita;
+} No;
 
 typedef struct {
-  Node* raiz;
-} Arvore;
+  No* raiz;
+} RedBlackTree;
 
-//prototipos
-Node* aloca_memoria_no(); //aloca memoria para um no
-Arvore* aloca_memoria_arvore(); //aloca memoria para uma arvore
-void libera_memoria_no(Node*); //libera memoria de um no
-void libera_memoria_arvore(Node*); //libera memoria de uma arvore
-Node* cria_no(int);
-Arvore* cria_arvora();
-void inserirNo(Arvore*, int);
-Node* rotacaoEsquerda(Arvore*, Node*);
-Node* rotacaoDireita(Arvore*, Node*);
-void balancearInsercao(Arvore*, Node*);
-Node* encontrarNo(Arvore*, int);
-Node* minimoNode(Node*);
-void transplant(Arvore*, Node*, Node*); //mudar de cor
-void balancearRemocao(Arvore*, Node*);
-void removerNo(Arvore*, int);
-void inOrder(Node*);
+//prototipos de funcões
+No* alocaMemoriaNo(); //aloca memoria para um sNo
+RedBlackTree* alocaMemoriaRBT(); //aloca memoria para uma RedBlackTree
+void liberaNo(No*); //libera memoria de um sNo
+void liberaArvore(RedBlackTree*); //libera memoria de uma RedBlackTree
+No* criaNo(int); //cria um novo sNo
+RedBlackTree* criaArvoreRBT(); //cria uma nova RedBlackTree
+void inOrder(No*); // percorre a arvore em ordem
+void transplant(RedBlackTree*, No*, No*); //mudar de cor
+void inserirNo(RedBlackTree*, int); //insere um sNo na RedBlackTree
+void balancearInsercao(RedBlackTree*, No*); // balanceia a inserção
+No* rotacaoEsquerda(RedBlackTree*, No*); // rotaciona para a esquerda
+No* rotacaoDireita(RedBlackTree*, No*); // rotaciona para a direita
+No* minimoNode(No*); //encontra o no com o menor valor
+No* encontrarNo(RedBlackTree*, int); //encontra um no
+void removerNo(RedBlackTree*, int); //remove um no
+void balancearRemocao(RedBlackTree*, No*); //balanceia a remoção
+void testRBT(); //testa todos os aspectos da arvore rubro-negra
 
 // função para alocar memória para um nó
-Node* aloca_memoria_no() {
-  Node* no = (Node*)malloc(sizeof(Node));
-  if (no == NULL) {
-    printf("Erro ao alocar memória para o no!\n");
-    exit(1);
+No* alocaMemoriaNo() {
+  No* sNo = (No*)malloc(sizeof(No));
+  if (sNo == NULL) {
+    fprintf(stderr, "Erro ao alocar memória para o sNo!\n");
+    return NULL;
   }
-  return no;
+  return sNo;
 }
 
 // função para alocar memória para uma árvore
-Arvore* aloca_memoria_arvore() {
-  Arvore* arvore = (Arvore*)malloc(sizeof(Arvore));
+RedBlackTree* alocaMemoriaRBT() {
+  RedBlackTree* arvore = (RedBlackTree*)malloc(sizeof(RedBlackTree));
   if (arvore == NULL) {
-    printf("Erro ao alocar memória para a arvore!\n");
-    exit(1);
+    printf("Erro ao alocar memória para a RedBlackTree!\n");
+    return NULL;
   }
   return arvore;
 }
 
-void libera_memoria_no(Node* no) {
+// função para liberar memória de um nó
+void liberaNo(No* no) {
   if (no != NULL) {
+    liberaNo(no->esquerda);
+    liberaNo(no->direita);
     free(no);
   }
 }
 
-void libera_memoria_arvore(Node* raiz) {
-  if (raiz != NULL) {
-    liberar_memoria_arvore(raiz->esquerda);
-    liberar_memoria_arvore(raiz->direita);
-    libera_memoria_no(raiz);
+// função para liberar memória de uma árvore
+void liberaArvore(RedBlackTree* arvore) {
+  if (arvore != NULL) {
+    liberaNo(arvore->raiz);
+    free(arvore);
   }
 }
 
-Node* cria_no(int valor) {
-  Node* no = aloca_memoria_no();
+// função para criar um novo nó
+No* criaNo(int valor) {
+  No* no = alocaMemoriaNo();
   if (no == NULL) {
-    printf("Erro ao criar novo no!\n");
-    exit(1);
+    fprintf(stderr, "Erro ao criar novo no!\n");
+    return NULL;
   }
   no->valor = valor;
-  no->cor = VERMELHO;
+  no->cor = RED;
   no->pai = NULL;
   no->esquerda = NULL;
   no->direita = NULL;
   return no;
 }
 
-Arvore* cria_arvora() {
-  Arvore* arvore = aloca_memoria_arvore();
-  if (arvore == NULL) {
-    printf("Erro ao criar nova arvore!\n");
-    exit(1);
+// função para criar uma nova árvore
+RedBlackTree* criaArvoreRBT() {
+  RedBlackTree* novo = alocaMemoriaRBT();
+  if (novo == NULL) {
+    fprintf(stderr, "Erro ao criar nova RedBlackTree!\n");
+    exit(EXIT_FAILURE);
   }
-  arvore->raiz = NULL;
-  return arvore;
+  novo->raiz = NULL;
+  return novo;
 }
 
-Node* rotacaoEsquerda(Arvore* arvore, Node* no) {
-  Node* filhoDireito = no->direita;
-  no->direita = filhoDireito->esquerda;
-
-  if (filhoDireito->esquerda != NULL) {
-    filhoDireito->esquerda->pai = no;
+// função para percorrer a árvore em ordem
+void inOrder(No* sNo) {
+  if (sNo != NULL) {
+    inOrder(sNo->esquerda);
+    printf("%d (%s)\n", sNo->valor, sNo->cor == RED ? "RED" : "BLACK");
+    inOrder(sNo->direita);
   }
+}
 
-  filhoDireito->pai = no->pai;
-
-  if (no->pai == NULL) {
-    arvore->raiz = filhoDireito;
+// função para mudar de cor
+void transplant(RedBlackTree* RedBlackTree, No* no1, No* no2) {
+  if (no1->pai == NULL) {
+    RedBlackTree->raiz = no2;
   }
-  else if (no == no->pai->esquerda) {
-    no->pai->esquerda = filhoDireito;
+  else if (no1 == no1->pai->esquerda) {
+    no1->pai->esquerda = no2;
   }
   else {
-    no->pai->direita = filhoDireito;
+    no1->pai->direita = no2;
   }
-
-  filhoDireito->esquerda = no;
-  no->pai = filhoDireito;
-
-  return filhoDireito; // Retorna o novo nó raiz da subárvore
+  if (no2 != NULL) {
+    no2->pai = no1->pai;
+  }
 }
 
-Node* rotacaoDireita(Arvore* arvore, Node* no) {
-  Node* filhoEsquerdo = no->esquerda;
-  no->esquerda = filhoEsquerdo->direita;
-
-  if (filhoEsquerdo->direita != NULL) {
-    filhoEsquerdo->direita->pai = no;
+// função para inserir um nó na árvore
+void inserirNo(RedBlackTree* RedBlackTree, int valor) {
+  No* novoNo = criaNo(valor);
+  if (novoNo == NULL) {
+    fprintf(stderr, "Erro ao criar novo nó!\n");
+    return;
   }
 
-  filhoEsquerdo->pai = no->pai;
+  No* pai = NULL;
+  No* atual = RedBlackTree->raiz;
 
-  if (no->pai == NULL) {
-    arvore->raiz = filhoEsquerdo;
-  }
-  else if (no == no->pai->direita) {
-    no->pai->direita = filhoEsquerdo;
-  }
-  else {
-    no->pai->esquerda = filhoEsquerdo;
-  }
-
-  filhoEsquerdo->direita = no;
-  no->pai = filhoEsquerdo;
-
-  return filhoEsquerdo; // Retorna o novo nó raiz da subárvore
-}
-
-void balancearInsercao(Arvore* arvore, Node* no) {
-  while (no != arvore->raiz && no->pai->cor == VERMELHO) {
-    if (no->pai == no->pai->pai->esquerda) {
-      Node* tioNode = no->pai->pai->direita;
-      if (tioNode != NULL && tioNode->cor == VERMELHO) {
-        no->pai->cor = PRETO;
-        tioNode->cor = PRETO;
-        no->pai->pai->cor = VERMELHO;
-        no = no->pai->pai;
-      }
-      else {
-        if (no == no->pai->direita) {
-          no = no->pai;
-          no = rotacaoEsquerda(arvore, no);
-        }
-        no->pai->cor = PRETO;
-        no->pai->pai->cor = VERMELHO;
-        no = rotacaoDireita(arvore, no->pai->pai);
-      }
-    }
-    else {
-      Node* tioNode = no->pai->pai->esquerda;
-      if (tioNode != NULL && tioNode->cor == VERMELHO) {
-        no->pai->cor = PRETO;
-        tioNode->cor = PRETO;
-        no->pai->pai->cor = VERMELHO;
-        no = no->pai->pai;
-      }
-      else {
-        if (no == no->pai->esquerda) {
-          no = no->pai;
-          no = rotacaoDireita(arvore, no);
-        }
-        no->pai->cor = PRETO;
-        no->pai->pai->cor = VERMELHO;
-        no = rotacaoEsquerda(arvore, no->pai->pai);
-      }
-    }
-  }
-  arvore->raiz->cor = PRETO;
-}
-
-void inserirNo(Arvore* arvore, int valor) {
-  Node* novoNo = cria_no(valor);
-  Node* pai = NULL;
-  Node* atual = arvore->raiz;
-
+  // Encontra o nó pai do novo nó
   while (atual != NULL) {
     pai = atual;
     if (novoNo->valor < atual->valor) {
@@ -199,23 +142,134 @@ void inserirNo(Arvore* arvore, int valor) {
     }
   }
 
+  // o pai do novo nó é nulo
   novoNo->pai = pai;
 
-  if (pai == NULL) {
-    arvore->raiz = novoNo;
-  }
+  if (pai == NULL) { // arvore vazia
+    RedBlackTree->raiz = novoNo;
+  } // se o valor do novo nó é menor que o valor do pai, o novo nó é filho esquerdo
   else if (novoNo->valor < pai->valor) {
     pai->esquerda = novoNo;
-  }
+  } // se o valor do novo nó é maior que o valor do pai, o novo nó é filho direito
   else {
     pai->direita = novoNo;
   }
-
-  balancearInsercao(arvore, novoNo);
+  // balancear a inserção com as propriedades da árvore rubro-negra
+  balancearInsercao(RedBlackTree, novoNo);
 }
 
-Node* encontrarNo(Arvore* arvore, int valor) {
-  Node* atual = arvore->raiz;
+// função para balancear a inserção
+void balancearInsercao(RedBlackTree* RedBlackTree, No* no) {
+  while (no != RedBlackTree->raiz && no->pai->cor == RED) {
+    if (no->pai == no->pai->pai->esquerda) {
+      No* tioNode = no->pai->pai->direita; // tio do nó
+
+      //caso 1: tio é vermelho
+      if (tioNode != NULL && tioNode->cor == RED) {
+        no->pai->cor = BLACK;
+        tioNode->cor = BLACK;
+        no->pai->pai->cor = RED;
+        no = no->pai->pai;
+      }
+      else {
+        //caso 2: tio é preto e nó é filho direito
+        if (no == no->pai->direita) {
+          no = no->pai;
+          no = rotacaoEsquerda(RedBlackTree, no);
+        }
+        //caso 3: tio é preto e nó é filho esquerdo
+        no->pai->cor = BLACK;
+        no->pai->pai->cor = RED;
+        no = rotacaoDireita(RedBlackTree, no->pai->pai);
+      }
+    }
+    else {
+      No* tioNode = no->pai->pai->esquerda; // caso simétrico: tio é filho esquerdo
+
+      if (tioNode != NULL && tioNode->cor == RED) {
+        no->pai->cor = BLACK;
+        tioNode->cor = BLACK;
+        no->pai->pai->cor = RED;
+        no = no->pai->pai;
+      }
+      else {
+        if (no == no->pai->esquerda) {
+          no = no->pai;
+          no = rotacaoDireita(RedBlackTree, no);
+        }
+        no->pai->cor = BLACK;
+        no->pai->pai->cor = RED;
+        no = rotacaoEsquerda(RedBlackTree, no->pai->pai);
+      }
+    }
+  }
+  RedBlackTree->raiz->cor = BLACK;
+}
+
+// função para rotacionar para a esquerda
+No* rotacaoEsquerda(RedBlackTree* RedBlackTree, No* no) {
+  No* filhoDireito = no->direita;
+  no->direita = filhoDireito->esquerda;
+
+  if (filhoDireito->esquerda != NULL) {
+    filhoDireito->esquerda->pai = no;
+  }
+
+  filhoDireito->pai = no->pai;
+
+  if (no->pai == NULL) { // Se o nó é a raiz
+    RedBlackTree->raiz = filhoDireito;
+  }
+  else if (no == no->pai->esquerda) { // Se o nó é filho esquerdo
+    no->pai->esquerda = filhoDireito;
+  }
+  else { // Se o nó é filho direito
+    no->pai->direita = filhoDireito;
+  }
+
+  filhoDireito->esquerda = no;
+  no->pai = filhoDireito;
+
+  return filhoDireito; // novo nó raiz da subárvore rotacionada
+}
+
+No* rotacaoDireita(RedBlackTree* RedBlackTree, No* no) {
+  No* filhoEsquerdo = no->esquerda;
+  no->esquerda = filhoEsquerdo->direita;
+
+  if (filhoEsquerdo->direita != NULL) {
+    filhoEsquerdo->direita->pai = no;
+  }
+
+  filhoEsquerdo->pai = no->pai;
+
+  if (no->pai == NULL) { // Se o nó é a raiz
+    RedBlackTree->raiz = filhoEsquerdo;
+  }
+  else if (no == no->pai->direita) { // Se o nó é filho direito
+    no->pai->direita = filhoEsquerdo;
+  }
+  else { // Se o nó é filho esquerdo
+    no->pai->esquerda = filhoEsquerdo;
+  }
+
+  filhoEsquerdo->direita = no;
+  no->pai = filhoEsquerdo;
+
+  return filhoEsquerdo; // novo nó raiz da subárvore rotacionada
+}
+
+// função para encontrar o nó com o menor valor
+No* minimoNode(No* no) {
+  while (no->esquerda != NULL) {
+    no = no->esquerda;
+  }
+  return no; // retorna o nó com o menor valor
+}
+
+// função para encontrar um nó
+No* encontrarNo(RedBlackTree* RedBlackTree, int valor) {
+  No* atual = RedBlackTree->raiz;
   while (atual != NULL) {
     if (valor < atual->valor) {
       atual = atual->esquerda;
@@ -230,119 +284,44 @@ Node* encontrarNo(Arvore* arvore, int valor) {
   return NULL;
 }
 
-Node* minimoNode(Node* no) {
-  while (no->esquerda != NULL) {
-    no = no->esquerda;
-  }
-  return no;
-}
-
-void transplant(Arvore* arvore, Node* no1, Node* no2) {
-  if (no1->pai == NULL) {
-    arvore->raiz = no2;
-  }
-  else if (no1 == no1->pai->esquerda) {
-    no1->pai->esquerda = no2;
-  }
-  else {
-    no1->pai->direita = no2;
-  }
-  if (no2 != NULL) {
-    no2->pai = no1->pai;
-  }
-}
-
-void balancearRemocao(Arvore* arvore, Node* no) {
-  while (no != arvore->raiz && no->cor == PRETO) {
-    if (no == no->pai->esquerda) {
-      Node* irmao = no->pai->direita;
-      if (irmao->cor == VERMELHO) {
-        irmao->cor = PRETO;
-        no->pai->cor = VERMELHO;
-        rotacaoEsquerda(arvore, no->pai);
-        irmao = no->pai->direita;
-      }
-      if (irmao->esquerda->cor == PRETO && irmao->direita->cor == PRETO) {
-        irmao->cor = VERMELHO;
-        no = no->pai;
-      }
-      else {
-        if (irmao->direita->cor == PRETO) {
-          irmao->esquerda->cor = PRETO;
-          irmao->cor = VERMELHO;
-          irmao = rotacaoDireita(arvore, irmao);
-        }
-        irmao->cor = no->pai->cor;
-        no->pai->cor = PRETO;
-        irmao->direita->cor = PRETO;
-        rotacaoEsquerda(arvore, no->pai);
-        no = arvore->raiz;
-      }
-    }
-    else {
-      Node* irmao = no->pai->esquerda;
-      if (irmao->cor == VERMELHO) {
-        irmao->cor = PRETO;
-        no->pai->cor = VERMELHO;
-        rotacaoDireita(arvore, no->pai);
-        irmao = no->pai->esquerda;
-      }
-      if (irmao->direita->cor == PRETO && irmao->esquerda->cor == PRETO) {
-        irmao->cor = VERMELHO;
-        no = no->pai;
-      }
-      else {
-        if (irmao->esquerda->cor == PRETO) {
-          irmao->direita->cor = PRETO;
-          irmao->cor = VERMELHO;
-          irmao = rotacaoEsquerda(arvore, irmao);
-        }
-        irmao->cor = no->pai->cor;
-        no->pai->cor = PRETO;
-        irmao->esquerda->cor = PRETO;
-        rotacaoDireita(arvore, no->pai);
-        no = arvore->raiz;
-      }
-    }
-  }
-  no->cor = PRETO;
-}
-
-void removerNo(Arvore* arvore, int valor) {
-  Node* no = encontrarNo(arvore, valor);
+// função para remover um nó
+void removerNo(RedBlackTree* RedBlackTree, int valor) {
+  No* no = encontrarNo(RedBlackTree, valor);
 
   if (no == NULL) {
-    printf("O nó com valor %d não existe na árvore.\n", valor);
+    fprintf(stderr, "O nó com valor %d não existe na árvore.\n", valor);
     return;
   }
 
-  Node* noRemovido = no;
-  int corOriginal = noRemovido->cor;
-  Node* substituto;
+  No* noRemovido = no;
+  Cor corOriginal = noRemovido->cor;
+  No* substituto;
 
-  if (no->esquerda == NULL) {
+  if (no->esquerda == NULL) { // Se o nó não tem filho esquerdo
     substituto = no->direita;
-    transplant(arvore, no, no->direita);
+    transplant(RedBlackTree, no, no->direita);
   }
-  else if (no->direita == NULL) {
+  else if (no->direita == NULL) { // Se o nó não tem filho direito
     substituto = no->esquerda;
-    transplant(arvore, no, no->esquerda);
+    transplant(RedBlackTree, no, no->esquerda);
   }
-  else {
-    noRemovido = minimoNode(no->direita);
+  else { // Se o nó tem dois filhos
+    noRemovido = minimoNode(no->direita); // encontra o nó com o menor valor na subárvore direita
     corOriginal = noRemovido->cor;
     substituto = noRemovido->direita;
+
     if (noRemovido->pai == no) {
       if (substituto != NULL) {
         substituto->pai = noRemovido;
       }
     }
     else {
-      transplant(arvore, noRemovido, noRemovido->direita);
+      transplant(RedBlackTree, noRemovido, noRemovido->direita);
       noRemovido->direita = no->direita;
       noRemovido->direita->pai = noRemovido;
     }
-    transplant(arvore, no, noRemovido);
+
+    transplant(RedBlackTree, no, noRemovido);
     noRemovido->esquerda = no->esquerda;
     noRemovido->esquerda->pai = noRemovido;
     noRemovido->cor = no->cor;
@@ -350,63 +329,116 @@ void removerNo(Arvore* arvore, int valor) {
 
   free(no);
 
-  if (corOriginal == PRETO) {
-    balancearRemocao(arvore, substituto);
+  if (corOriginal == BLACK) {
+    balancearRemocao(RedBlackTree, substituto);
   }
 }
 
-void inOrder(Node* no) {
-  if (no != NULL) {
-    inOrder(no->esquerda);
-    printf("%d %s\n", no->valor, no->cor == VERMELHO ? "VERMELHO" : "PRETO");
-    inOrder(no->direita);
+// função para balancear a remoção
+void balancearRemocao(RedBlackTree* RedBlackTree, No* no) {
+  while (no != RedBlackTree->raiz && no->cor == BLACK) {
+    if (no == no->pai->esquerda) { // Se o nó é filho esquerdo
+      No* irmao = no->pai->direita; // irmão do nó
+      if (irmao->cor == RED) { // caso 1: irmão é vermelho
+        irmao->cor = BLACK;
+        no->pai->cor = RED;
+        rotacaoEsquerda(RedBlackTree, no->pai);
+        irmao = no->pai->direita;
+      }
+      if (irmao->esquerda->cor == BLACK && irmao->direita->cor == BLACK) { // caso 2: ambos os filhos do irmão são pretos
+        irmao->cor = RED;
+        no = no->pai;
+      }
+      else { // caso 3: o filho direito do irmão é preto e o filho esquerdo do irmão é vermelho
+        if (irmao->direita->cor == BLACK) {
+          irmao->esquerda->cor = BLACK;
+          irmao->cor = RED;
+          irmao = rotacaoDireita(RedBlackTree, irmao);
+        } // caso 4: o filho direito do irmão é vermelho
+        irmao->cor = no->pai->cor;
+        no->pai->cor = BLACK;
+        irmao->direita->cor = BLACK;
+        rotacaoEsquerda(RedBlackTree, no->pai);
+        no = RedBlackTree->raiz;
+      }
+    } // caso simétrico: o nó é filho direito
+    else {
+      No* irmao = no->pai->esquerda;
+      if (irmao->cor == RED) { // caso 1: irmão é vermelho
+        irmao->cor = BLACK;
+        no->pai->cor = RED;
+        rotacaoDireita(RedBlackTree, no->pai);
+        irmao = no->pai->esquerda;
+      } // caso 2: ambos os filhos do irmão são pretos
+      if (irmao->direita->cor == BLACK && irmao->esquerda->cor == BLACK) {
+        irmao->cor = RED;
+        no = no->pai;
+      }
+      else { // caso 3: o filho esquerdo do irmão é preto e o filho direito do irmão é vermelho
+        if (irmao->esquerda->cor == BLACK) {
+          irmao->direita->cor = BLACK;
+          irmao->cor = RED;
+          irmao = rotacaoEsquerda(RedBlackTree, irmao);
+        }
+        // caso 4: o filho esquerdo do irmão é vermelho
+        irmao->cor = no->pai->cor;
+        no->pai->cor = BLACK;
+        irmao->esquerda->cor = BLACK;
+        rotacaoDireita(RedBlackTree, no->pai);
+        no = RedBlackTree->raiz;
+      }
+    }
   }
+  no->cor = BLACK;
 }
 
+// função para testar todos os apectos da árvore rubro-negra
+void testRBT() {
 
-int main() {
-  Arvore* arvore = cria_arvora();
-  inserirNo(arvore, 10);
-  inserirNo(arvore, 20);
-  inserirNo(arvore, 30);
+  RedBlackTree* RedBlackTree = criaArvoreRBT();
+  inserirNo(RedBlackTree, 10);
+  inserirNo(RedBlackTree, 20);
+  inserirNo(RedBlackTree, 30);
 
-
-  printf("Árvore Rubro-Negra:\n");
-  inOrder(arvore->raiz);
-  printf("\n\n");
-  inserirNo(arvore, 34);
-  inserirNo(arvore, 36);
 
   printf("Árvore Rubro-Negra:\n");
-  inOrder(arvore->raiz);
+  inOrder(RedBlackTree->raiz);
+  printf("\n\n");
+  inserirNo(RedBlackTree, 34);
+  inserirNo(RedBlackTree, 36);
+
+  printf("Árvore Rubro-Negra:\n");
+  inOrder(RedBlackTree->raiz);
   printf("\n\n");
 
-  inserirNo(arvore, 25);
-  inserirNo(arvore, 40);
-  inserirNo(arvore, 35);
-  inserirNo(arvore, 45);
+  inserirNo(RedBlackTree, 25);
+  inserirNo(RedBlackTree, 40);
+  inserirNo(RedBlackTree, 35);
+  inserirNo(RedBlackTree, 45);
   printf("\n\n");
 
   printf("Árvore Rubro-Negra:\n");
-  inOrder(arvore->raiz);
+  inOrder(RedBlackTree->raiz);
 
   // Remover um nó
-  removerNo(arvore, 30);
+  removerNo(RedBlackTree, 30);
   printf("\n\n");
 
   printf("Árvore Rubro-Negra após remoção:\n");
-  inOrder(arvore->raiz);
+  inOrder(RedBlackTree->raiz);
 
-  inserirNo(arvore, 26);
+  inserirNo(RedBlackTree, 26);
 
   printf("\n\n");
 
   printf("Árvore Rubro-Negra:\n");
-  inOrder(arvore->raiz);
+  inOrder(RedBlackTree->raiz);
 
   // Liberar memória alocada
-  libera_memoria_arvore(arvore);
-  free(arvore);
+  liberaArvore(RedBlackTree);
+}
 
+int main() {
+  testRBT();
   return 0;
 }
