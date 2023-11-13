@@ -438,7 +438,49 @@ void testRBT() {
   liberaArvore(RedBlackTree);
 }
 
+// menu principal
+void menu() {
+  printf("0. Sair\n");
+  printf("1. Inserir um nó\n");
+  printf("2. Remover um nó\n");
+  printf("3. Imprimir a árvore\n");
+  printf("4. Teste\n");
+  printf("Escolha uma opção: ");
+}
+
 int main() {
-  testRBT();
-  return 0;
+  RedBlackTree* RedBlackTree = criaArvoreRBT();
+  int opcao, valor;
+  do {
+    printf("\n");
+    menu();
+    scanf("%d", &opcao);
+    switch (opcao) {
+    case 0:
+      liberaArvore(RedBlackTree);
+      return 0;
+      break;
+    case 1:
+      printf("Digite o valor do nó: ");
+      scanf("%d", &valor);
+      inserirNo(RedBlackTree, valor);
+      break;
+    case 2:
+      printf("Digite o valor do nó: ");
+      scanf("%d", &valor);
+      removerNo(RedBlackTree, valor);
+      break;
+    case 3:
+      printf("Árvore Rubro-Negra:\n");
+      inOrder(RedBlackTree->raiz);
+      printf("\n\n");
+      break;
+    case 4:
+      testRBT();
+      break;
+    default:
+      printf("Opção inválida!\n");
+      break;
+    }
+  } while (opcao != 0);
 }
